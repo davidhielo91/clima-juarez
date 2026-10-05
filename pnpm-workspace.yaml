@@ -1,0 +1,15 @@
+# Configuración de pnpm para este proyecto (pnpm 11 la lee de aquí, no de package.json).
+#
+# allowBuilds: esbuild (motor de Vitest) y unrs-resolver (resolver nativo de
+# ESLint) necesitan ejecutar su script de instalación para funcionar.
+#
+# nodeLinker: hoisted crea una carpeta node_modules plana, como npm. El enlace
+# aislado por defecto usa uniones de directorio que en Windows impiden a Node
+# resolver las dependencias internas de Next (styled-jsx, @swc/helpers), y el
+# build falla. Con el instalador plano la resolución es idéntica en Windows,
+# Linux y Vercel.
+allowBuilds:
+  esbuild: true
+  unrs-resolver: true
+
+nodeLinker: hoisted

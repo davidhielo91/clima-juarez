@@ -1,0 +1,61 @@
+# Verificación en cada push a main y en cada pull request.
+#
+# Comprueba lo mismo que se verificó antes de publicar: estilo, tipos, pruebas,
+# contraste de color y que el build de producción se complete. Además de instalar
+# dependencias no usa la red, así que es rápido y no depende de la cuota de nadie.
+#
+# A propósito NO se ejecuta `pnpm verify:sources`: golpea nueve endpoints en vivo y
+# consume cuota de Open-Meteo, de modo que no debe poder bloquear un push. Ese se
+# corre a mano cuando se sospecha que una fuente cambió de forma.
+#
+# Ojo: el build descarga las tipografías de Google Fonts (next/font), igual que en
+# Vercel. Si algún día Google no responde, el build falla aquí y allá por el mismo
+# motivo; el sitio seguiría funcionando con la pila de fuentes de reserva una vez
+# compilado.
+name: Verificar
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Un push nuevo cancela la verificación anterior de la misma referencia.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Traer el código
+        uses: actions/checkout@v4
+
+      # Sin `version`: lee `packageManager` del package.json, que fija pnpm 11.7.0.
+      # Poner las dos cosas a la vez hace que la acción falle por versión duplicada.
+      - name: Preparar pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Estilo
+        run: pnpm lint
+
+      - name: Tipos
+        run: pnpm typecheck
+
+      - name: Pruebas
+        run: pnpm test
+
+      - name: Contraste de color
+        run: pnpm check:contrast
+
+      - name: Build de producción
+        run: pnpm build

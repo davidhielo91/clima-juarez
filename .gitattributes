@@ -1,0 +1,13 @@
+# Normaliza los finales de línea. El proyecto se desarrolla en Windows y se
+# despliega en Linux (Vercel), así que el repositorio guarda LF y Git convierte
+# según la plataforma. Sin esto, cada archivo aparece como modificado al
+# cambiar de sistema.
+* text=auto eol=lf
+
+# Los PNG son binarios: nunca deben convertirse.
+*.png binary
+*.ico binary
+*.webp binary
+
+# Los archivos generados no se comparan línea por línea.
+pnpm-lock.yaml -diff linguist-generated

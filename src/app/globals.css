@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+/*
+ * DIRECCIÓN VISUAL: estación de campo en el desierto.
+ *
+ * No es un tablero de tarjetas. Es una hoja de registro de estación
+ * meteorológica: filas regladas, un canal de tiempo a la izquierda, y una
+ * columna vertical real a la derecha con el perfil atmosférico que la API
+ * describe (capa límite, nivel de congelación, viento en altura, suelo).
+ *
+ * Paleta: tinta de arena cálida sobre azul-noche frío. El acento es una rampa
+ * de atardecer desértico usada con avaricia: solo el marcador de "ahora" y los
+ * avisos. Nada de verde ácido ni de crema con serif.
+ */
+@theme {
+  /* Superficies */
+  --color-night-950: #12141c;
+  --color-night-900: #171a24;
+  --color-night-800: #1e2230;
+  --color-night-700: #272c3d;
+  --color-rule: #2f354a;
+  --color-rule-strong: #3d4459;
+
+  /* Tinta. Los tres grises están elegidos por contraste calculado sobre
+     `night-950`, no a ojo: `ink-dim` da 5.9:1 (se usa en etiquetas de 10–11 px,
+     donde AA exige 4.5:1), `ink-soft` 8.4:1 e `ink` 14.6:1. */
+  --color-ink: #e8e3d9;
+  --color-ink-soft: #b3ada0;
+  --color-ink-dim: #96928a;
+
+  /* Acento: rampa de atardecer */
+  --color-amber: #e0a44f;
+  --color-ember: #c9622a;
+  --color-ember-deep: #8f3f1c;
+
+  /* Fríos, para humedad y aire */
+  --color-cold: #6fa8b8;
+  --color-cold-deep: #3d6b78;
+
+  /* Semáforo de avisos. Los dos rojos se aclararon para que el TEXTO de un aviso
+     grave cumpla AA sobre el fondo oscuro: el rojo original daba 4.1:1 y este da
+     5.0:1 (peligro) y 5.1:1 (extremo). La gravedad también se distingue por el
+     borde y por el texto, así que aclararlos no resta jerarquía. */
+  --color-tone-good: #7fa87f;
+  --color-tone-info: #6fa8b8;
+  --color-tone-caution: #d8c05a;
+  --color-tone-warn: #e0a44f;
+  --color-tone-danger: #e05a4e;
+  --color-tone-extreme: #d4656b;
+
+  /* Tipografía: Barlow viene de la señalización de carretera del suroeste
+     estadounidense; Plex Mono tiene procedencia de instrumento de medida. */
+  --font-sans: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-barlow-condensed), "Arial Narrow", ui-sans-serif,
+    sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "Cascadia Mono", monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-night-950);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/*
+ * Papel de registrador: las bandas de datos llevan esta retícula tenue, como el
+ * papel milimétrico de un termógrafo. Es textura informativa, no adorno: marca
+ * la escala de las gráficas.
+ */
+.ruled {
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--color-rule) 45%, transparent) 0 1px,
+      transparent 1px 12px
+    ),
+    repeating-linear-gradient(
+      to right,
+      color-mix(in oklab, var(--color-rule) 30%, transparent) 0 1px,
+      transparent 1px 48px
+    );
+}
+
+.ruled-hours {
+  background-image: repeating-linear-gradient(
+    to right,
+    color-mix(in oklab, var(--color-rule) 40%, transparent) 0 1px,
+    transparent 1px 100%
+  );
+}
+
+/* Todas las cifras del panel: monoespaciadas y tabulares, para que no bailen
+   cuando el dato se actualiza. */
+.numeric {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.eyebrow {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 600;
+}
+
+/* Foco visible y consistente en todo lo interactivo. */
+:where(a, button, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-amber);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--color-ember-deep);
+  color: var(--color-ink);
+}
+
+/* Barras de desplazamiento discretas en las tablas anchas. */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-rule-strong) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
