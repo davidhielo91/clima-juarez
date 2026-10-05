@@ -27,6 +27,11 @@ concurrency:
 jobs:
   verificar:
     runs-on: ubuntu-latest
+    # Tope de tiempo: si algún día una descarga de dependencias se atasca, el
+    # flujo falla a los 20 minutos en lugar de quedarse colgado las seis horas
+    # que GitHub permite por omisión. En condiciones normales tarda poco más de
+    # un minuto.
+    timeout-minutes: 20
     steps:
       - name: Traer el código
         uses: actions/checkout@v4
