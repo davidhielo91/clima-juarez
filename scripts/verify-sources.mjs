@@ -11,6 +11,8 @@
  * Sale con código 1 si alguna comprobación falla.
  */
 
+import { createHash } from "node:crypto";
+
 import {
   AIR_VARIABLES,
   CLIMATE_CHUNKS,
@@ -21,9 +23,11 @@ import {
   MINUTELY_VARIABLES,
   MODELS,
   POINT,
+  RADAR,
   ZONES,
   ZONE_VARIABLES,
   BASE,
+  baseTileUrl,
   buildAirQualityUrl,
   buildClimateUrl,
   buildDetailedForecastUrl,
@@ -32,6 +36,8 @@ import {
   buildMinutelyUrl,
   buildModelsUrl,
   buildZonesUrl,
+  radarTileFor,
+  radarTileUrl,
 } from "../src/lib/endpoints.mjs";
 
 const failures = [];
@@ -52,6 +58,19 @@ async function getJson(url) {
   });
   const body = await response.json().catch(() => null);
   return { status: response.status, body };
+}
+
+async function getBytes(url) {
+  const response = await fetch(url, {
+    headers: { accept: "image/png" },
+    signal: AbortSignal.timeout(30000),
+  });
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return { status: response.status, buffer };
+}
+
+function digest(buffer) {
+  return createHash("sha256").update(buffer).digest("hex");
 }
 
 function requireKeys(check, block, keys, label) {
@@ -230,6 +249,62 @@ async function checkRadar() {
   }
 }
 
+/**
+ * Comprueba que el zoom configurado del radar EXISTE de verdad.
+ *
+ * Mirar el código HTTP no basta, y esta comprobación nació de ese error: RainViewer
+ * responde 200 con una imagen opaca que dice "Zoom Level Not Supported" cuando se le
+ * pide un zoom que no sirve, así que el mapa salía cubierto de carteles grises y la
+ * verificación anterior —que solo miraba el estado— lo daba por bueno.
+ *
+ * La prueba pide la tesela del zoom configurado y la de un zoom imposible (el 20, que
+ * ningún producto de radar sirve). Si son el mismo archivo, el zoom configurado no
+ * existe. El zoom imposible se elige bien lejos a propósito: uno cercano podría
+ * empezar a funcionar algún día y convertir la referencia en un falso positivo.
+ */
+async function checkRadarTiles() {
+  const check = "teselas del radar";
+  const catalog = await getJson(BASE.radar);
+  if (catalog.status !== 200) {
+    return fail(check, `HTTP ${catalog.status} en el catálogo`);
+  }
+  const host = String(catalog.body?.host ?? "");
+  const frames = catalog.body?.radar?.past ?? [];
+  if (host.trim() === "" || frames.length === 0) {
+    return fail(check, "el catálogo llegó sin host o sin fotogramas");
+  }
+
+  const frame = frames[frames.length - 1];
+  const configured = radarTileFor(POINT.latitude, POINT.longitude, RADAR.zoom);
+  const impossible = radarTileFor(POINT.latitude, POINT.longitude, 20);
+
+  const [wanted, broken, base] = await Promise.all([
+    getBytes(radarTileUrl(host, frame.path, configured)),
+    getBytes(radarTileUrl(host, frame.path, impossible)),
+    getBytes(baseTileUrl(configured)),
+  ]);
+
+  if (wanted.status !== 200) {
+    return fail(check, `HTTP ${wanted.status} en el zoom ${RADAR.zoom}`);
+  }
+  if (digest(wanted.buffer) === digest(broken.buffer)) {
+    return fail(
+      check,
+      `el zoom ${RADAR.zoom} devuelve la imagen de error de RainViewer ("Zoom Level Not Supported"); hay que bajarlo en RADAR, en src/lib/endpoints.mjs`,
+    );
+  }
+  if (base.status !== 200) {
+    fail(check, `HTTP ${base.status} en la cartografía base de OpenStreetMap`);
+  }
+
+  if (!failures.some((item) => item.startsWith(check))) {
+    ok(
+      check,
+      `zoom ${RADAR.zoom} con lluvia real (${wanted.buffer.length} B) distinta de la de error (${broken.buffer.length} B)`,
+    );
+  }
+}
+
 async function checkHistory() {
   const check = "histórico reciente";
   const { status, body } = await getJson(buildHistoryUrl());
@@ -294,6 +369,7 @@ async function main() {
     checkModels,
     checkEnsemble,
     checkRadar,
+    checkRadarTiles,
     checkHistory,
     checkClimate,
   ];

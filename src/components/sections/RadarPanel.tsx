@@ -1,6 +1,6 @@
 import { Caveat, DataState, EmptyNote, Panel } from "@/components/ui/primitives";
 import RadarViewer from "@/components/radar/RadarViewer";
-import { POINT } from "@/lib/endpoints.mjs";
+import { POINT, RADAR, radarTileEdgeMetres } from "@/lib/endpoints.mjs";
 import { formatTimestamp } from "@/lib/format";
 import { getRadar } from "@/lib/sources/radar";
 import { formatNumber, type UnitSystem } from "@/lib/units";
@@ -18,25 +18,26 @@ import { formatNumber, type UnitSystem } from "@/lib/units";
  */
 
 /**
- * Lado de una tesela a zoom 8 en esta latitud, en metros: la circunferencia
- * ecuatorial repartida entre las 256 columnas del mundo, corregida por el coseno de
- * la latitud.
+ * Extensión del cuadro, derivada de la MISMA definición que usa el visor para pedir
+ * los mosaicos (`RADAR` y `radarTileEdgeMetres`, en `src/lib/endpoints.mjs`).
+ *
+ * Antes cada lado calculaba la suya y no coincidían: el panel anunciaba 133 km por
+ * tesela, que es el valor del zoom 8, mientras el visor pedía el 8 y RainViewer
+ * respondía con carteles de "Zoom Level Not Supported". Con una sola definición eso
+ * no puede volver a separarse.
  */
-const TILE_EDGE_METRES =
-  (40075016.686 * Math.cos((POINT.latitude * Math.PI) / 180)) / 256;
-
-/** Ancho del cuadro: tres teselas. El alto son dos, porque las teselas son cuadradas. */
-const FRAME_WIDTH_METRES = TILE_EDGE_METRES * 3;
+const FRAME_WIDTH_METRES = radarTileEdgeMetres(POINT.latitude) * RADAR.columns;
+const FRAME_HEIGHT_METRES = FRAME_WIDTH_METRES * (RADAR.rows / RADAR.columns);
 
 /**
  * Extensión del cuadro en las unidades del usuario.
  *
- * `formatDistance` trabaja en metros y con 400 000 m la cifra pierde toda
- * legibilidad (400,000 m; en pies, 1,312,336 ft), así que la conversión se hace aquí
+ * `formatDistance` trabaja en metros y con 800 000 m la cifra pierde toda
+ * legibilidad (800,000 m; en pies, 2,624,672 ft), así que la conversión se hace aquí
  * a kilómetros o millas —unidades en las que la gente piensa las distancias
  * regionales— y el número se formatea con `formatNumber`, que sí viene de
  * `src/lib/units.ts`. La cifra es una aproximación: el ancho real depende de la
- * latitud, y a 31.7° cada tesela mide 133 km.
+ * latitud, y a 31.7° cada tesela mide 266 km.
  */
 function formatExtent(metres: number, units: UnitSystem): string {
   if (units.distance === "ft") {
@@ -54,7 +55,7 @@ export default async function RadarPanel({ units }: { units: UnitSystem }) {
 
   const subtitle =
     first !== undefined && last !== undefined
-      ? `${frames.length} fotogramas, de las ${formatTimestamp(first.time)} a las ${formatTimestamp(last.time)} UTC`
+      ? `${frames.length} fotogramas, de las ${formatTimestamp(first.time)} a las ${formatTimestamp(last.time)}, hora de Ciudad Juárez`
       : "Lluvia observada por radar sobre la región";
 
   const missingHost =
@@ -82,7 +83,7 @@ export default async function RadarPanel({ units }: { units: UnitSystem }) {
         más intenso es más agua por hora, pero la conversión de reflectividad a
         milímetros es aproximada, así que no se puede leer como una cifra. El cuadro
         cubre {formatExtent(FRAME_WIDTH_METRES, units)} de ancho por{" "}
-        {formatExtent(FRAME_WIDTH_METRES * (2 / 3), units)} de alto: entra el valle
+        {formatExtent(FRAME_HEIGHT_METRES, units)} de alto: entra el valle
         completo, El Paso y buena parte del sur de Nuevo México, así que sirve para ver
         de dónde viene la lluvia, no para saber si está cayendo en tu cuadra. La base
         cartográfica es de OpenStreetMap y la lluvia, de RainViewer; ninguna de las dos

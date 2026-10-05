@@ -105,12 +105,16 @@ export function Row({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-rule/50 py-1.5 last:border-b-0">
-      <dt className="flex min-w-0 items-baseline gap-1.5 text-[12px] text-ink-dim">
-        <span className="truncate">{label}</span>
+      <dt className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 text-[12px] text-ink-dim">
+        {/*
+          Ni la etiqueta ni su aclaración se recortan nunca: si no caben en una línea,
+          la aclaración baja a la siguiente. Recortar era peor que no ponerla —se leía
+          "Indi…" en lugar de "Índice ultravioleta", y luego "cómo s…" en lugar de
+          "cómo se reparte"—, y justo desaparecía el dato que se estaba buscando.
+        */}
+        <span className="shrink-0">{label}</span>
         {hint ? (
-          <span className="hidden shrink-0 text-[10px] text-ink-dim/70 sm:inline">
-            {hint}
-          </span>
+          <span className="text-[10px] text-ink-dim/70">{hint}</span>
         ) : null}
       </dt>
       <dd

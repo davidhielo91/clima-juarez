@@ -154,8 +154,8 @@ export default function HourlyPanel({
 
       <ChartFrame
         caption="Temperatura del aire. La línea vertical marca la hora en curso."
-        scaleLeft={formatTemperature(maxTemperature, units, { withUnit: true })}
-        scaleRight={formatTemperature(minTemperature, units, { withUnit: true })}
+        scaleLeft={formatTemperature(maxTemperature, units, { digits: 1, withUnit: true })}
+        scaleRight={formatTemperature(minTemperature, units, { digits: 1, withUnit: true })}
       >
         <Trace
           values={temperature}

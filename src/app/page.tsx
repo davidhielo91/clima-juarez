@@ -21,6 +21,7 @@ import SunPanel from "@/components/sections/SunPanel";
 import ZonesPanel from "@/components/sections/ZonesPanel";
 
 import { getForecast } from "@/lib/sources/forecast";
+import { getMinutely } from "@/lib/sources/minutely";
 import { getUnitSystem, getUnitSystemId } from "@/lib/preferences";
 import type { UnitSystem } from "@/lib/units";
 
@@ -71,10 +72,13 @@ async function ColumnSection({ units }: SectionProps) {
 }
 
 async function MinutelySection({ units }: SectionProps) {
-  const result = await getForecast();
+  // Ojo: el detalle de quince minutos NO viene en la petición del pronóstico
+  // detallado, que pide horas y días. Tiene su propia llamada; usar la del
+  // pronóstico dejaba el módulo diciendo "el modelo no publicó datos".
+  const result = await getMinutely();
   return (
     <DataState result={result} what="el detalle de quince minutos">
-      {(forecast) => <MinutelyPanel forecast={forecast} units={units} />}
+      {(minutely) => <MinutelyPanel forecast={minutely} units={units} />}
     </DataState>
   );
 }

@@ -205,9 +205,14 @@ export default function NowPanel({
             }
           />
           <Row
-            label="Radiación solar"
-            hint="directa y difusa"
-            value={`${formatRadiation(shortwave)} · ${formatRadiation(direct)} / ${formatRadiation(diffuse)}`}
+            label="Radiación global"
+            hint="llega al suelo"
+            value={formatRadiation(shortwave)}
+          />
+          <Row
+            label="Directa y difusa"
+            hint="cómo se reparte"
+            value={`${formatRadiation(direct)} / ${formatRadiation(diffuse)}`}
           />
           <Row
             label="Energía convectiva"
@@ -244,7 +249,7 @@ export default function NowPanel({
             )}
           />
           <Row
-            label="Vapor de agua en la columna"
+            label="Vapor de agua"
             hint="agua precipitable"
             value={`${formatIndex(fromHour("total_column_integrated_water_vapour"), 1)} kg/m²`}
           />

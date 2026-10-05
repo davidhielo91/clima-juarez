@@ -85,7 +85,12 @@ ok   climatología — 10958 días, 30 años distintos
 | Construcción | `pnpm build` | compila, pasa lint y tipos, y genera las páginas |
 | Render con datos reales | servidor de producción + inspección del HTML | los **14 módulos** se pintan; **cero** `undefined`, `NaN`, `null` ni mensajes de error en el texto visible |
 | Peso de la página | — | 2.3 MB de HTML que quedan en **134 KB comprimidos** |
-| Teselas del radar y del mapa base | petición real a RainViewer y a OpenStreetMap | rejilla 3×2 a zoom 8 sobre Juárez; seis teselas con `200 image/png` |
+| Teselas del radar y del mapa base | `pnpm verify:sources` | el zoom configurado devuelve **lluvia real y no la imagen de error** de RainViewer (543 B frente a 1370 B); la rejilla 3×2 cubre 799 × 533 km |
+
+Esa comprobación de las teselas nació de un fallo real: el radar pedía un zoom que
+RainViewer no sirve, y como la respuesta llegaba con código 200, una verificación que
+solo mirara el estado la daba por buena. El mapa salía cubierto de carteles de «Zoom
+Level Not Supported». Ahora se compara el archivo real con el de error.
 
 Lo que **no** se puede comprobar sin un dispositivo real: la instalación como
 aplicación en Android e iOS, la emisión de `beforeinstallprompt` y la aparición de

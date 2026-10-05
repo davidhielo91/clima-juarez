@@ -27,11 +27,11 @@ const AIR_MIN = 900;
 const AIR_MAX = 6000;
 
 const SVG_WIDTH = 208;
-const SVG_HEIGHT = 540;
+const SVG_HEIGHT = 560;
 const AIR_TOP = 26;
 const AIR_BOTTOM = 392;
-const SOIL_TOP = 424;
-const SOIL_BOTTOM = 524;
+const SOIL_TOP = 412;
+const SOIL_BOTTOM = 512;
 const SOIL_MAX_CM = 54;
 
 const SOIL_DEPTHS = [0, 6, 18, 54] as const;
@@ -83,7 +83,12 @@ export default function ColumnRail({
     SOIL_TOP + (centimetres / SOIL_MAX_CM) * (SOIL_BOTTOM - SOIL_TOP);
 
   const surfaceY = yAir(elevation);
-  const ticks = [1000, 2000, 3000, 4000, 5000, 6000];
+  // Solo se marcan las alturas POR ENCIMA de la estación. Una marca por debajo
+  // —los 1000 m, con la ciudad a 1132— dibujaba una raya suelta dentro del perfil
+  // del suelo y, peor, atravesaba la etiqueta de la superficie.
+  const ticks = [1000, 2000, 3000, 4000, 5000, 6000].filter(
+    (tick) => yAir(tick) < surfaceY,
+  );
 
   const windReadings = WIND_LEVELS.map((level) => ({
     height: level.height,
@@ -207,9 +212,11 @@ export default function ColumnRail({
             stroke="var(--color-ink-soft)"
             strokeWidth={1.4}
           />
+          {/* La etiqueta va DEBAJO de la raya: encima chocaba con la caja del viento
+              y con la marca de altitud inferior. */}
           <text
             x={48}
-            y={surfaceY - 5}
+            y={surfaceY + 13}
             fontSize={9}
             fill="var(--color-ink)"
             fontFamily="var(--font-mono)"
@@ -218,20 +225,21 @@ export default function ColumnRail({
           </text>
 
           {/* Escala ampliada del viento cerca del suelo: a escala real, 80, 120 y
-              180 m caerían en el mismo píxel. Se dice que está ampliada. */}
-          <g transform={`translate(52 ${surfaceY - 74})`}>
+              180 m caerían en el mismo píxel. Se dice que está ampliada, y la caja
+              es lo bastante alta para que la última cifra no quede cortada. */}
+          <g transform={`translate(52 ${surfaceY - 84})`}>
             <rect
               x={0}
               y={0}
               width={SVG_WIDTH - 62}
-              height={62}
+              height={72}
               fill="var(--color-night-800)"
               opacity={0.55}
               stroke="var(--color-rule)"
               strokeWidth={0.6}
             />
             <text x={4} y={10} fontSize={8} fill="var(--color-ink-dim)">
-              viento sobre el suelo · escala ampliada
+              viento sobre el suelo, km/h · escala ampliada
             </text>
             {windReadings.map((reading, position) => {
               const columnX = 8 + position * 34;
@@ -244,7 +252,7 @@ export default function ColumnRail({
                   />
                   <text
                     x={11}
-                    y={34}
+                    y={50}
                     textAnchor="middle"
                     fontSize={8}
                     fill="var(--color-ink-soft)"
@@ -254,13 +262,13 @@ export default function ColumnRail({
                   </text>
                   <text
                     x={11}
-                    y={44}
+                    y={62}
                     textAnchor="middle"
                     fontSize={8}
                     fill="var(--color-ink-dim)"
                     fontFamily="var(--font-mono)"
                   >
-                    {reading.speed ?? "—"}
+                    {reading.speed === null ? "—" : reading.speed.toFixed(1)}
                   </text>
                 </g>
               );

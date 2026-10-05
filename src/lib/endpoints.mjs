@@ -89,6 +89,69 @@ export const BASE = {
 };
 
 /**
+ * Geometría del radar, compartida por el servidor y el cliente.
+ *
+ * Vive aquí, junto al resto de constantes compartidas, por un motivo concreto: el
+ * servidor calcula la extensión del cuadro y el cliente pide las teselas, y cuando
+ * cada uno tenía su propia copia del zoom el visor pidió el 8 mientras RainViewer
+ * solo sirve hasta el 7. El resultado fueron seis carteles de "Zoom Level Not
+ * Supported" tapando el mapa en lugar de lluvia.
+ *
+ * El tope es el 7, comprobado pidiendo la misma tesela a cada nivel: en 8, 9 y 10
+ * RainViewer devuelve una imagen de error opaca de 1370 bytes, idéntica en los tres.
+ * OpenStreetMap sí sirve el 8, pero manda el radar, que es el que tiene el límite.
+ */
+export const RADAR = {
+  zoom: 7,
+  tileSize: 256,
+  /** Esquema 4 de RainViewer: precipitación con la escala de colores habitual. */
+  colorScheme: 4,
+  smooth: 1,
+  snow: 0,
+  columns: 3,
+  rows: 2,
+  baseTileUrl: "https://tile.openstreetmap.org",
+};
+
+/**
+ * Lado de una tesela de radar en metros a una latitud dada.
+ *
+ * Cuidado con el divisor: es `2 ** zoom`, el número de teselas que caben alrededor
+ * del mundo, NO `tileSize * 2 ** zoom`, que da metros por PÍXEL. La confusión es
+ * fácil porque a zoom 8 los dos coinciden (256 = 2⁸) y el error queda invisible; al
+ * bajar a zoom 7 el panel llegó a anunciar "unos 3 km de ancho" en vez de 800.
+ */
+export function radarTileEdgeMetres(latitude) {
+  const equator = 40075016.686;
+  return (equator * Math.cos((latitude * Math.PI) / 180)) / 2 ** RADAR.zoom;
+}
+
+/** Coordenada de la tesela (Web Mercator) que contiene un punto. */
+export function radarTileFor(latitude, longitude, zoom = RADAR.zoom) {
+  const count = 2 ** zoom;
+  const radians = (latitude * Math.PI) / 180;
+  return {
+    zoom,
+    x: Math.floor(((longitude + 180) / 360) * count),
+    y: Math.floor(
+      ((1 - Math.log(Math.tan(radians) + 1 / Math.cos(radians)) / Math.PI) / 2) *
+        count,
+    ),
+  };
+}
+
+/** URL de la tesela de lluvia de RainViewer: `{host}{path}/{size}/{z}/{x}/{y}/...`. */
+export function radarTileUrl(host, framePath, tile) {
+  const cleanHost = String(host).replace(/\/$/, "");
+  return `${cleanHost}${framePath}/${RADAR.tileSize}/${tile.zoom}/${tile.x}/${tile.y}/${RADAR.colorScheme}/${RADAR.smooth}_${RADAR.snow}.png`;
+}
+
+/** URL de la tesela de cartografía base de OpenStreetMap. */
+export function baseTileUrl(tile) {
+  return `${RADAR.baseTileUrl}/${tile.zoom}/${tile.x}/${tile.y}.png`;
+}
+
+/**
  * Segundos que Next.js reutiliza cada respuesta. Con estos valores la app gasta
  * unas 900 peticiones al día con tráfico continuo, muy por debajo del límite no
  * comercial de Open-Meteo (~10 000).

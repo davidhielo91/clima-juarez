@@ -88,10 +88,15 @@ export default function MinutelyPanel({
       title="Próximas 2 horas"
       subtitle={`Cada 15 minutos, de ${formatTime(minutely15.time[first])} a ${formatTime(minutely15.time[last])}`}
     >
+      {/*
+        La escala lleva un decimal obligatorio: en una ventana de dos horas el rango
+        suele ser de uno o dos grados, y redondeado a entero mostraba la misma cifra
+        arriba y abajo, con lo que no decía nada.
+      */}
       <ChartFrame
-        caption="Temperatura del aire. La línea vertical marca la hora en curso."
-        scaleLeft={formatTemperature(maxTemperature, units, { withUnit: true })}
-        scaleRight={formatTemperature(minTemperature, units, { withUnit: true })}
+        caption="Temperatura del aire, de ahora a dentro de dos horas."
+        scaleLeft={formatTemperature(maxTemperature, units, { digits: 1, withUnit: true })}
+        scaleRight={formatTemperature(minTemperature, units, { digits: 1, withUnit: true })}
       >
         <Trace
           values={temperature}

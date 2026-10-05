@@ -2,8 +2,8 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { EmptyNote } from "@/components/ui/primitives";
-import { POINT } from "@/lib/endpoints.mjs";
-import { formatTimestamp, TIMEZONE } from "@/lib/format";
+import { POINT, RADAR, baseTileUrl, radarTileUrl } from "@/lib/endpoints.mjs";
+import { formatTimestamp } from "@/lib/format";
 import type { RadarFrame } from "@/lib/types";
 
 /**
@@ -16,13 +16,17 @@ import type { RadarFrame } from "@/lib/types";
  * hacia dónde se mueve.
  *
  * Detalles del armado:
- *  - Se pide una rejilla de 3×2 teselas a zoom 8, centrada en Ciudad Juárez. La
+ *  - Se pide una rejilla de 3×2 teselas a zoom 7, centrada en Ciudad Juárez. La
  *    tesela base se calcula con la fórmula estándar de Mercator (la latitud en
  *    radianes, con la tangente y la secante) y la rejilla se desplaza media tesela
  *    para que el punto caiga en el centro exacto del cuadro.
- *  - Cada tesela mide 133 km de lado a esta latitud, así que el cuadro cubre unos
- *    400 km de ancho: entra el valle completo, El Paso y buena parte del sur de Nuevo
- *    México. Es lo que hace falta para ver de dónde viene un chubasco de monzón.
+ *  - El zoom 7 no es una preferencia estética: es el máximo que sirve RainViewer. En
+ *    8, 9 y 10 devuelve una imagen de error opaca con el texto "Zoom Level Not
+ *    Supported", y el mapa queda tapado de carteles grises en vez de lluvia.
+ *  - Cada tesela mide 266 km de lado a esta latitud, así que el cuadro cubre unos
+ *    800 km de ancho: entra el valle completo, El Paso, buena parte de Chihuahua y el
+ *    sur de Nuevo México. Es lo que hace falta para ver de dónde viene un chubasco de
+ *    monzón, que es el fenómeno que aquí se sigue con radar.
  *  - La URL de cada mosaico de lluvia es
  *    `{host}{path}/{size}/{z}/{x}/{y}/{colorScheme}/{smooth}_{snow}.png`.
  *  - Los fotogramas se dejan montados todos y se alterna su opacidad: los mosaicos de
@@ -33,26 +37,27 @@ import type { RadarFrame } from "@/lib/types";
  *    fotograma más reciente y el botón de reproducir sigue disponible.
  */
 
-const ZOOM = 8;
-const TILE_SIZE = 256;
-/** Esquema 4 de RainViewer: precipitación, con la escala de colores habitual. */
-const COLOR_SCHEME = 4;
-const SMOOTH = 1;
-const SNOW = 0;
-
-const COLUMNS = 3;
-const ROWS = 2;
+// La geometría viene de `src/lib/endpoints.mjs`, compartida con el servidor: el
+// zoom, el tamaño de tesela, el esquema de color y la rejilla tienen que coincidir
+// con lo que el panel anuncia, y tenerlos duplicados fue justo lo que rompió el mapa.
+const ZOOM = RADAR.zoom;
+const TILE_SIZE = RADAR.tileSize;
+const COLUMNS = RADAR.columns;
+const ROWS = RADAR.rows;
 
 /** Milisegundos por fotograma: rápido para ver el movimiento, lento para leerlo. */
 const FRAME_MS = 550;
-
-const BASE_TILE_URL = "https://tile.openstreetmap.org";
 
 interface GridTile {
   x: number;
   y: number;
   column: number;
   row: number;
+}
+
+/** Tesela con su zoom, que es lo que esperan los constructores de URL compartidos. */
+function tiled(tile: GridTile): { zoom: number; x: number; y: number } {
+  return { zoom: ZOOM, x: tile.x, y: tile.y };
 }
 
 /** Coordenada continua de tesela (Mercator) en longitud. */
@@ -83,14 +88,6 @@ function buildGrid(): GridTile[] {
 /** La rejilla solo depende del punto y del zoom: se calcula una vez por módulo. */
 const GRID = buildGrid();
 
-/** Hora local de Ciudad Juárez a partir de un instante Unix real. */
-const juarezTime = new Intl.DateTimeFormat("es-MX", {
-  hour: "2-digit",
-  minute: "2-digit",
-  hourCycle: "h23",
-  timeZone: TIMEZONE,
-});
-
 function tileStyle(tile: GridTile): CSSProperties {
   return {
     left: `${(tile.column / COLUMNS) * 100}%`,
@@ -98,15 +95,6 @@ function tileStyle(tile: GridTile): CSSProperties {
     width: `${100 / COLUMNS}%`,
     height: `${100 / ROWS}%`,
   };
-}
-
-function baseTileUrl(tile: GridTile): string {
-  return `${BASE_TILE_URL}/${ZOOM}/${tile.x}/${tile.y}.png`;
-}
-
-function radarTileUrl(host: string, frame: RadarFrame, tile: GridTile): string {
-  const cleanHost = host.endsWith("/") ? host.slice(0, -1) : host;
-  return `${cleanHost}${frame.path}/${TILE_SIZE}/${ZOOM}/${tile.x}/${tile.y}/${COLOR_SCHEME}/${SMOOTH}_${SNOW}.png`;
 }
 
 export default function RadarViewer({
@@ -155,13 +143,13 @@ export default function RadarViewer({
       <div
         className="relative aspect-[3/2] w-full overflow-hidden border border-rule bg-night-800"
         role="img"
-        aria-label={`Mapa del norte de Chihuahua y el sur de Nuevo México con la lluvia detectada por radar a las ${formatTimestamp(frame.time)} horas UTC`}
+        aria-label={`Mapa del norte de Chihuahua y el sur de Nuevo México con la lluvia detectada por radar a las ${formatTimestamp(frame.time)}, hora de Ciudad Juárez`}
       >
         {GRID.map((tile) => (
           // Base cartográfica. Decorativa: el sentido lo carga la etiqueta del visor.
           <img
             key={`base-${tile.x}-${tile.y}`}
-            src={baseTileUrl(tile)}
+            src={baseTileUrl(tiled(tile))}
             alt=""
             aria-hidden="true"
             width={TILE_SIZE}
@@ -183,7 +171,7 @@ export default function RadarViewer({
             {GRID.map((tile) => (
               <img
                 key={`${item.path}-${tile.x}-${tile.y}`}
-                src={radarTileUrl(host, item, tile)}
+                src={radarTileUrl(host, item.path, tiled(tile))}
                 alt=""
                 aria-hidden="true"
                 width={TILE_SIZE}
@@ -240,16 +228,13 @@ export default function RadarViewer({
             setIndex(Number(event.target.value));
           }}
           aria-label="Fotograma del radar"
-          aria-valuetext={`Fotograma ${safeIndex + 1} de ${frames.length}, ${formatTimestamp(frame.time)} horas UTC`}
+          aria-valuetext={`Fotograma ${safeIndex + 1} de ${frames.length}, ${formatTimestamp(frame.time)}, hora de Ciudad Juárez`}
           className="h-1 min-w-[140px] flex-1 accent-[var(--color-amber)]"
         />
 
         <p className="numeric text-[11px] text-ink-soft">
-          {formatTimestamp(frame.time)} UTC
-          <span className="text-ink-dim">
-            {" · "}
-            {juarezTime.format(new Date(frame.time * 1000))} en Juárez
-          </span>
+          {formatTimestamp(frame.time)}
+          <span className="text-ink-dim"> hora de Ciudad Juárez</span>
           <span className="ml-2 text-ink-dim">
             {safeIndex + 1} / {frames.length}
           </span>
