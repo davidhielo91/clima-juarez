@@ -109,7 +109,7 @@ export default async function Page() {
     <div className="mx-auto max-w-[1560px] pb-10">
       <Header unitsId={unitsId} />
 
-      <main className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_296px]">
+      <main className="panel-grid grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_296px]">
         <div className="order-1 lg:col-start-1">
           <Suspense fallback={<Fallback id="avisos" title="Avisos" />}>
             <AlertsPanel />

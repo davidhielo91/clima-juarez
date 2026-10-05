@@ -101,6 +101,20 @@ body {
   );
 }
 
+/*
+ * Los hijos de una rejilla tienen `min-width: auto`, de modo que una tabla ancha
+ * dentro de un módulo puede ensanchar su columna y, con ella, toda la página. Con
+ * `min-width: 0` cada módulo se queda dentro de su columna y lo ancho se desplaza en
+ * su propio contenedor, que es donde corresponde.
+ *
+ * Medido a 390 px de ancho: hoy la página NO desborda (`scrollWidth` coincide con el
+ * ancho del viewport), así que esto es una red de seguridad para contenido futuro y
+ * no la corrección de un fallo observado.
+ */
+.panel-grid > * {
+  min-width: 0;
+}
+
 /* Todas las cifras del panel: monoespaciadas y tabulares, para que no bailen
    cuando el dato se actualiza. */
 .numeric {

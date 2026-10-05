@@ -165,6 +165,9 @@ export default function DailyPanel({
                 {/* Detalle del día */}
                 <div className="mb-3 grid gap-4 bg-night-900/40 px-3 py-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                   <div>
+                    {/* Ocho columnas de palabras se aprietan en un teléfono; con este
+                        contenedor se desplazan en vez de salirse del panel. */}
+                    <div className="scroll-thin overflow-x-auto">
                     <table className="w-full border-collapse text-left">
                       <thead>
                         <tr>
@@ -233,6 +236,7 @@ export default function DailyPanel({
                         })}
                       </tbody>
                     </table>
+                    </div>
                   </div>
 
                   <dl className="grid content-start gap-x-6 sm:grid-cols-2 lg:grid-cols-1">

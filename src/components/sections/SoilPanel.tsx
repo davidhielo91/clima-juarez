@@ -245,6 +245,10 @@ function SoilBody({
           <h3 className="eyebrow mb-1 text-[11px] text-ink-soft">
             Humedad volumétrica
           </h3>
+          {/* Mismo patrón que el resto de las tablas del panel: si el ancho no
+              alcanza —un teléfono estrecho—, la tabla se desplaza en lugar de
+              salirse del módulo. */}
+          <div className="scroll-thin overflow-x-auto">
           <table className="w-full border-collapse text-left">
             <caption className="sr-only">
               Humedad volumétrica del suelo en las cinco capas que publica el modelo,
@@ -305,6 +309,7 @@ function SoilBody({
               ))}
             </tbody>
           </table>
+          </div>
 
           <RowList>
             <Row
