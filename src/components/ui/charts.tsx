@@ -359,7 +359,6 @@ export function MoonDisk({
 
 /* --------------------------------------------------------------- envoltura */
 
-/** Marco reglado para las gráficas: la retícula del papel de registrador. */
 /**
  * Etiqueta de escala sobre el trazo: va en la esquina izquierda, con fondo para que
  * la línea no la tape. Solo cambia si va arriba (máximo) o abajo (mínimo).
@@ -367,6 +366,7 @@ export function MoonDisk({
 const SCALE_LABEL =
   "numeric pointer-events-none absolute left-0 bg-night-950/85 px-1 text-[9px] text-ink-dim";
 
+/** Marco reglado para las gráficas: la retícula del papel de registrador. */
 export function ChartFrame({
   children,
   caption,

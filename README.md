@@ -70,7 +70,7 @@ ok   zonas de la ciudad — 6 puntos, elevaciones 1116–1297 m
 ok   calidad del aire — 120 h, celda 31.70/-106.50 (~11 km)
 ok   seis modelos — 6 modelos × 384 h
 ok   ensamble — 30 miembros × 240 h
-ok   radar — 13 fotogramas
+ok   radar — 13 fotogramas, host https://tilecache.rainviewer.com
 ok   teselas del radar — zoom 7 con lluvia real (334 B) distinta de la de error (1370 B)
 ok   histórico reciente — 15 días
 ok   climatología — 10958 días, 30 años distintos
@@ -91,9 +91,9 @@ error.
 | Fuentes en vivo | `pnpm verify:sources` | 10 comprobaciones (9 fuentes y las teselas del radar), todas las variables presentes |
 | Construcción | `pnpm build` | compila, pasa lint y tipos, y genera las páginas |
 | Render con datos reales | servidor de producción + inspección del HTML | los **14 módulos** se pintan; **cero** `undefined`, `NaN`, `null` ni mensajes de error en el texto visible |
-| Peso de la página | — | 2.3 MB de HTML que quedan en **134 KB comprimidos** |
+| Peso de la página | `curl` + `gzip -9` | 2.5 MB de HTML que quedan en **133 KB comprimidos** a máxima compresión; `pnpm start` comprime al vuelo, con menos fuerza, y entrega unos 450 KB |
 | Teselas del radar y del mapa base | `pnpm verify:sources` | el zoom configurado devuelve **lluvia real y no la imagen de error** de RainViewer (un archivo distinto del de error, de 1370 B), y la cartografía base responde |
-| Extensión del radar | cálculo en `RadarPanel.tsx` con `radarTileEdgeMetres` | la rejilla 3×2 del zoom 7 cubre 799 × 533 km a la latitud de Juárez; no lo comprueba ningún script |
+| Extensión del radar | cálculo en `RadarPanel.tsx` con `radarTileEdgeMetres` | el cuadro visible mide 3×2 teselas del zoom 7, 799 × 533 km a la latitud de Juárez, con la ciudad en el centro; para centrarla se piden 4×3 teselas y se recorta lo que sobra. La extensión no la comprueba ningún script |
 
 Esa comprobación de las teselas nació de un fallo real: el radar pedía un zoom que
 RainViewer no sirve, y como la respuesta llegaba con código 200, una verificación que

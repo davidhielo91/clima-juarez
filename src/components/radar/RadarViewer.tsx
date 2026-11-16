@@ -39,8 +39,9 @@ import type { RadarFrame } from "@/lib/types";
  *    fotograma más reciente y el botón de reproducir sigue disponible.
  */
 
-// La geometría viene de `src/lib/endpoints.mjs`, compartida con el servidor y con el
-// script de verificación: tenerla duplicada fue justo lo que rompió el mapa.
+// La geometría viene de `src/lib/radarGeometry.mjs` y la configuración, de
+// `src/lib/endpoints.mjs`; ambas se comparten con el servidor y con el script de
+// verificación: tenerlas duplicadas fue justo lo que rompió el mapa.
 
 /** Milisegundos por fotograma: rápido para ver el movimiento, lento para leerlo. */
 const FRAME_MS = 550;

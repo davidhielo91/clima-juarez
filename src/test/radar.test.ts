@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { POINT, RADAR } from "@/lib/endpoints.mjs";
+import { POINT, RADAR, RADAR_IMPOSSIBLE_ZOOM } from "@/lib/endpoints.mjs";
 import {
   radarGrid,
   radarTileEdgeMetres,
@@ -82,9 +82,11 @@ describe("radarTileFor", () => {
 
   it("el zoom imposible del script pide una tesela distinta de la configurada", () => {
     const configured = radarTileFor(POINT.latitude, POINT.longitude);
-    const impossible = radarTileFor(POINT.latitude, POINT.longitude, 20);
-    expect(impossible.zoom).toBe(20);
+    const impossible = radarTileFor(POINT.latitude, POINT.longitude, RADAR_IMPOSSIBLE_ZOOM);
+    expect(impossible.zoom).toBe(RADAR_IMPOSSIBLE_ZOOM);
     expect(impossible).not.toEqual(configured);
+    // Lo bastante lejos del tope de RainViewer (7) para no empezar a servirse nunca.
+    expect(RADAR_IMPOSSIBLE_ZOOM).toBeGreaterThan(RADAR.zoom + 10);
   });
 
   it("es la parte entera de la posición continua", () => {
@@ -128,14 +130,19 @@ describe("radarGrid", () => {
   });
 
   it("pone a Juárez en el centro exacto del cuadro", () => {
-    const position = radarTilePosition(POINT.latitude, POINT.longitude);
-    const home = grid.find(
-      (tile) => tile.x === Math.floor(position.x) && tile.y === Math.floor(position.y),
-    );
-    expect(home).toBeDefined();
-    // Esquina de la tesela + lo que el punto avanza dentro de ella = centro.
-    expect(home!.left + (position.x - home!.x)).toBeCloseTo(RADAR.columns / 2, 9);
-    expect(home!.top + (position.y - home!.y)).toBeCloseTo(RADAR.rows / 2, 9);
+    // El centro del cuadro se lleva de vuelta a grados con la fórmula INVERSA de
+    // Mercator, que no comparte código con `radarTilePosition`: si la rejilla se
+    // coloca mal, el centro deja de caer sobre Juárez y esta prueba lo ve.
+    const count = 2 ** RADAR.zoom;
+    for (const tile of grid) {
+      const centreX = tile.x - tile.left + RADAR.columns / 2;
+      const centreY = tile.y - tile.top + RADAR.rows / 2;
+      const longitude = (centreX / count) * 360 - 180;
+      const latitude =
+        (Math.atan(Math.sinh(Math.PI * (1 - (2 * centreY) / count))) * 180) / Math.PI;
+      expect(longitude).toBeCloseTo(POINT.longitude, 6);
+      expect(latitude).toBeCloseTo(POINT.latitude, 6);
+    }
   });
 
   it("cubre el cuadro entero, sin huecos en los bordes", () => {
@@ -147,11 +154,11 @@ describe("radarGrid", () => {
     expect(Math.max(...tops) + 1).toBeGreaterThanOrEqual(RADAR.rows);
   });
 
-  it("es contigua: teselas vecinas quedan a una tesela de distancia", () => {
-    const [first] = grid;
-    for (const tile of grid) {
-      expect(tile.left - first.left).toBeCloseTo(tile.x - first.x, 9);
-      expect(tile.top - first.top).toBeCloseTo(tile.y - first.y, 9);
-    }
+  it("desplaza la primera tesela 0.649 a la izquierda y 0.090 hacia arriba", () => {
+    // Juárez cae en 26.149 / 52.090; el cuadro de 3 × 2 empieza 1.5 y 1 teselas
+    // antes, en 24.649 / 51.090, así que la tesela 24/51 asoma por fuera esa fracción.
+    const first = grid.find((tile) => tile.x === 24 && tile.y === 51);
+    expect(first?.left).toBeCloseTo(-0.6486, 4);
+    expect(first?.top).toBeCloseTo(-0.0895, 4);
   });
 });

@@ -37,17 +37,10 @@ import {
   buildMinutelyUrl,
   buildModelsUrl,
   buildZonesUrl,
+  RADAR_IMPOSSIBLE_ZOOM,
   radarTileUrl,
 } from "../src/lib/endpoints.mjs";
 import { radarTileFor } from "../src/lib/radarGeometry.mjs";
-
-/**
- * Zoom que ningún producto de radar sirve, para obtener la imagen de error de
- * RainViewer y compararla con la del zoom configurado. Se elige bien lejos a
- * propósito: uno cercano podría empezar a funcionar algún día y convertir la
- * referencia en un falso positivo.
- */
-const IMPOSSIBLE_ZOOM = 20;
 
 const failures = [];
 const notes = [];
@@ -285,7 +278,7 @@ async function checkRadar() {
  * pide un zoom que no sirve, así que el mapa salía cubierto de carteles grises y la
  * verificación anterior —que solo miraba el estado— lo daba por bueno.
  *
- * La prueba pide la tesela del zoom configurado y la de `IMPOSSIBLE_ZOOM`. Si son el
+ * La prueba pide la tesela del zoom configurado y la de `RADAR_IMPOSSIBLE_ZOOM`. Si son el
  * mismo archivo, el zoom configurado no existe.
  */
 async function checkRadarTiles() {
@@ -302,7 +295,7 @@ async function checkRadarTiles() {
 
   const frame = frames[frames.length - 1];
   const configured = radarTileFor(POINT.latitude, POINT.longitude, RADAR.zoom);
-  const impossible = radarTileFor(POINT.latitude, POINT.longitude, IMPOSSIBLE_ZOOM);
+  const impossible = radarTileFor(POINT.latitude, POINT.longitude, RADAR_IMPOSSIBLE_ZOOM);
 
   const [wanted, broken, base] = await Promise.all([
     getBytes(radarTileUrl(host, frame.path, configured)),

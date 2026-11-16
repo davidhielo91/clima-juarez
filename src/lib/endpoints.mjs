@@ -114,6 +114,14 @@ export const RADAR = {
   baseTileUrl: "https://tile.openstreetmap.org",
 };
 
+/**
+ * Zoom que ningún producto de radar sirve. `scripts/verify-sources.mjs` lo usa para
+ * obtener la imagen de error de RainViewer y compararla con la del zoom configurado.
+ * Se elige bien lejos a propósito: uno cercano podría empezar a funcionar algún día
+ * y convertir la referencia en un falso positivo.
+ */
+export const RADAR_IMPOSSIBLE_ZOOM = 20;
+
 /** URL de la tesela de lluvia de RainViewer: `{host}{path}/{size}/{z}/{x}/{y}/...`. */
 export function radarTileUrl(host, framePath, tile) {
   const cleanHost = String(host).replace(/\/$/, "");
