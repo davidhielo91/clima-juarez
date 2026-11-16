@@ -126,18 +126,55 @@ export function radarTileEdgeMetres(latitude) {
   return (equator * Math.cos((latitude * Math.PI) / 180)) / 2 ** RADAR.zoom;
 }
 
-/** Coordenada de la tesela (Web Mercator) que contiene un punto. */
-export function radarTileFor(latitude, longitude, zoom = RADAR.zoom) {
+/**
+ * Posición continua de un punto en la rejilla de teselas (Web Mercator), con
+ * decimales: la parte entera es la tesela y la fraccionaria, dónde cae dentro de
+ * ella. Es la única copia de la fórmula; el visor y el script la usan a través de
+ * `radarTileFor` y `radarGrid`.
+ */
+export function radarTilePosition(latitude, longitude, zoom = RADAR.zoom) {
   const count = 2 ** zoom;
   const radians = (latitude * Math.PI) / 180;
   return {
     zoom,
-    x: Math.floor(((longitude + 180) / 360) * count),
-    y: Math.floor(
+    x: ((longitude + 180) / 360) * count,
+    y:
       ((1 - Math.log(Math.tan(radians) + 1 / Math.cos(radians)) / Math.PI) / 2) *
-        count,
-    ),
+      count,
   };
+}
+
+/** Coordenada de la tesela (Web Mercator) que contiene un punto. */
+export function radarTileFor(latitude, longitude, zoom = RADAR.zoom) {
+  const position = radarTilePosition(latitude, longitude, zoom);
+  return { zoom, x: Math.floor(position.x), y: Math.floor(position.y) };
+}
+
+/**
+ * Rejilla de `RADAR.columns` × `RADAR.rows` teselas alrededor de Ciudad Juárez.
+ *
+ * El origen se toma restando media rejilla a la posición continua del punto y
+ * redondeando hacia abajo, así que el punto queda dentro de la tesela central (o de
+ * la columna más cercana al centro) en lugar de en una esquina. `column` y `row`
+ * son la posición de cada tesela dentro del cuadro, para colocarla.
+ */
+export function radarGrid() {
+  const position = radarTilePosition(POINT.latitude, POINT.longitude);
+  const originX = Math.floor(position.x - RADAR.columns / 2);
+  const originY = Math.floor(position.y - RADAR.rows / 2);
+  const tiles = [];
+  for (let column = 0; column < RADAR.columns; column += 1) {
+    for (let row = 0; row < RADAR.rows; row += 1) {
+      tiles.push({
+        zoom: RADAR.zoom,
+        x: originX + column,
+        y: originY + row,
+        column,
+        row,
+      });
+    }
+  }
+  return tiles;
 }
 
 /** URL de la tesela de lluvia de RainViewer: `{host}{path}/{size}/{z}/{x}/{y}/...`. */

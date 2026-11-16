@@ -84,7 +84,7 @@ error.
 
 | Comprobación | Comando | Resultado |
 | --- | --- | --- |
-| Cálculo y formato | `pnpm test` | **289 pruebas en 12 archivos**, todas en verde |
+| Cálculo y formato | `pnpm test` | **296 pruebas en 12 archivos**, todas en verde |
 | Tipos | `pnpm typecheck` | sin errores |
 | Estilo | `pnpm lint` | sin errores |
 | Contraste de color | `pnpm check:contrast` | los 11 colores de texto superan **4.5:1** (WCAG AA) sobre las superficies donde se usan; el mínimo medido es 5.03:1 |

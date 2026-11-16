@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { EmptyNote } from "@/components/ui/primitives";
-import { POINT, RADAR, baseTileUrl, radarTileUrl } from "@/lib/endpoints.mjs";
+import { RADAR, baseTileUrl, radarGrid, radarTileUrl } from "@/lib/endpoints.mjs";
 import { formatTimestamp } from "@/lib/format";
 import type { RadarFrame } from "@/lib/types";
 
@@ -16,10 +16,9 @@ import type { RadarFrame } from "@/lib/types";
  * hacia dónde se mueve.
  *
  * Detalles del armado:
- *  - Se pide una rejilla de 3×2 teselas a zoom 7, centrada en Ciudad Juárez. La
- *    tesela base se calcula con la fórmula estándar de Mercator (la latitud en
- *    radianes, con la tangente y la secante) y la rejilla se desplaza media tesela
- *    para que el punto caiga en el centro exacto del cuadro.
+ *  - Se pide una rejilla de 3×2 teselas a zoom 7 alrededor de Ciudad Juárez. La
+ *    rejilla la arma `radarGrid`, en `src/lib/endpoints.mjs`, con la misma fórmula de
+ *    Mercator que usa el script de verificación; aquí solo se colocan las teselas.
  *  - El zoom 7 no es una preferencia estética: es el máximo que sirve RainViewer. En
  *    8, 9 y 10 devuelve una imagen de error opaca con el texto "Zoom Level Not
  *    Supported", y el mapa queda tapado de carteles grises en vez de lluvia.
@@ -37,63 +36,23 @@ import type { RadarFrame } from "@/lib/types";
  *    fotograma más reciente y el botón de reproducir sigue disponible.
  */
 
-// La geometría viene de `src/lib/endpoints.mjs`, compartida con el servidor: el
-// zoom, el tamaño de tesela, el esquema de color y la rejilla tienen que coincidir
-// con lo que el panel anuncia, y tenerlos duplicados fue justo lo que rompió el mapa.
-const ZOOM = RADAR.zoom;
-const TILE_SIZE = RADAR.tileSize;
-const COLUMNS = RADAR.columns;
-const ROWS = RADAR.rows;
+// La geometría viene de `src/lib/endpoints.mjs`, compartida con el servidor y con el
+// script de verificación: tenerla duplicada fue justo lo que rompió el mapa.
 
 /** Milisegundos por fotograma: rápido para ver el movimiento, lento para leerlo. */
 const FRAME_MS = 550;
 
-interface GridTile {
-  x: number;
-  y: number;
-  column: number;
-  row: number;
-}
-
-/** Tesela con su zoom, que es lo que esperan los constructores de URL compartidos. */
-function tiled(tile: GridTile): { zoom: number; x: number; y: number } {
-  return { zoom: ZOOM, x: tile.x, y: tile.y };
-}
-
-/** Coordenada continua de tesela (Mercator) en longitud. */
-function tileX(longitude: number): number {
-  return ((longitude + 180) / 360) * 2 ** ZOOM;
-}
-
-/** Coordenada continua de tesela (Mercator) en latitud. */
-function tileY(latitude: number): number {
-  const radians = (latitude * Math.PI) / 180;
-  return ((1 - Math.log(Math.tan(radians) + 1 / Math.cos(radians)) / Math.PI) / 2) * 2 ** ZOOM;
-}
-
-/** Rejilla de 3×2 teselas con el punto de referencia en el centro del cuadro. */
-function buildGrid(): GridTile[] {
-  const originX = Math.floor(tileX(POINT.longitude) - COLUMNS / 2);
-  const originY = Math.floor(tileY(POINT.latitude) - ROWS / 2);
-  const tiles: GridTile[] = [];
-
-  for (let column = 0; column < COLUMNS; column += 1) {
-    for (let row = 0; row < ROWS; row += 1) {
-      tiles.push({ x: originX + column, y: originY + row, column, row });
-    }
-  }
-  return tiles;
-}
-
 /** La rejilla solo depende del punto y del zoom: se calcula una vez por módulo. */
-const GRID = buildGrid();
+const GRID = radarGrid();
+
+type GridTile = (typeof GRID)[number];
 
 function tileStyle(tile: GridTile): CSSProperties {
   return {
-    left: `${(tile.column / COLUMNS) * 100}%`,
-    top: `${(tile.row / ROWS) * 100}%`,
-    width: `${100 / COLUMNS}%`,
-    height: `${100 / ROWS}%`,
+    left: `${(tile.column / RADAR.columns) * 100}%`,
+    top: `${(tile.row / RADAR.rows) * 100}%`,
+    width: `${100 / RADAR.columns}%`,
+    height: `${100 / RADAR.rows}%`,
   };
 }
 
@@ -149,11 +108,11 @@ export default function RadarViewer({
           // Base cartográfica. Decorativa: el sentido lo carga la etiqueta del visor.
           <img
             key={`base-${tile.x}-${tile.y}`}
-            src={baseTileUrl(tiled(tile))}
+            src={baseTileUrl(tile)}
             alt=""
             aria-hidden="true"
-            width={TILE_SIZE}
-            height={TILE_SIZE}
+            width={RADAR.tileSize}
+            height={RADAR.tileSize}
             draggable={false}
             style={tileStyle(tile)}
             className="absolute block select-none opacity-75"
@@ -171,11 +130,11 @@ export default function RadarViewer({
             {GRID.map((tile) => (
               <img
                 key={`${item.path}-${tile.x}-${tile.y}`}
-                src={radarTileUrl(host, item.path, tiled(tile))}
+                src={radarTileUrl(host, item.path, tile)}
                 alt=""
                 aria-hidden="true"
-                width={TILE_SIZE}
-                height={TILE_SIZE}
+                width={RADAR.tileSize}
+                height={RADAR.tileSize}
                 draggable={false}
                 style={tileStyle(tile)}
                 className="absolute block select-none"
