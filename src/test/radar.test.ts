@@ -114,34 +114,45 @@ describe("radarTilePosition", () => {
 describe("radarGrid", () => {
   const grid = radarGrid();
 
-  it("arma la misma rejilla de 3 × 2 teselas que pedía el visor", () => {
-    // Valor tomado del visor antes de unificar la fórmula: si cambia, el mapa se
-    // mueve, y eso tiene que ser una decisión, no un efecto secundario.
-    expect(grid.map(({ x, y, column, row }) => `${x}/${y}@${column},${row}`)).toEqual([
-      "24/51@0,0",
-      "24/52@0,1",
-      "25/51@1,0",
-      "25/52@1,1",
-      "26/51@2,0",
-      "26/52@2,1",
-    ]);
+  it("pide las teselas 24–27 × 51–53 del zoom 7", () => {
+    // Si cambia, el mapa se mueve: eso tiene que ser una decisión, no un efecto
+    // secundario.
+    const xs = [...new Set(grid.map((tile) => tile.x))];
+    const ys = [...new Set(grid.map((tile) => tile.y))];
+    expect(xs).toEqual([24, 25, 26, 27]);
+    expect(ys).toEqual([51, 52, 53]);
   });
 
-  it("tiene RADAR.columns × RADAR.rows teselas, todas del zoom configurado", () => {
-    expect(grid).toHaveLength(RADAR.columns * RADAR.rows);
+  it("tiene una columna y una fila de más, todas del zoom configurado", () => {
+    expect(grid).toHaveLength((RADAR.columns + 1) * (RADAR.rows + 1));
     expect(grid.every((tile) => tile.zoom === RADAR.zoom)).toBe(true);
   });
 
-  it("es contigua: cada columna y fila avanza una tesela", () => {
-    const [origin] = grid;
-    for (const tile of grid) {
-      expect(tile.x - origin.x).toBe(tile.column);
-      expect(tile.y - origin.y).toBe(tile.row);
-    }
+  it("pone a Juárez en el centro exacto del cuadro", () => {
+    const position = radarTilePosition(POINT.latitude, POINT.longitude);
+    const home = grid.find(
+      (tile) => tile.x === Math.floor(position.x) && tile.y === Math.floor(position.y),
+    );
+    expect(home).toBeDefined();
+    // Esquina de la tesela + lo que el punto avanza dentro de ella = centro.
+    expect(home!.left + (position.x - home!.x)).toBeCloseTo(RADAR.columns / 2, 9);
+    expect(home!.top + (position.y - home!.y)).toBeCloseTo(RADAR.rows / 2, 9);
   });
 
-  it("incluye la tesela que contiene Juárez", () => {
-    const home = radarTileFor(POINT.latitude, POINT.longitude);
-    expect(grid.some((tile) => tile.x === home.x && tile.y === home.y)).toBe(true);
+  it("cubre el cuadro entero, sin huecos en los bordes", () => {
+    const lefts = grid.map((tile) => tile.left);
+    const tops = grid.map((tile) => tile.top);
+    expect(Math.min(...lefts)).toBeLessThanOrEqual(0);
+    expect(Math.max(...lefts) + 1).toBeGreaterThanOrEqual(RADAR.columns);
+    expect(Math.min(...tops)).toBeLessThanOrEqual(0);
+    expect(Math.max(...tops) + 1).toBeGreaterThanOrEqual(RADAR.rows);
+  });
+
+  it("es contigua: teselas vecinas quedan a una tesela de distancia", () => {
+    const [first] = grid;
+    for (const tile of grid) {
+      expect(tile.left - first.left).toBeCloseTo(tile.x - first.x, 9);
+      expect(tile.top - first.top).toBeCloseTo(tile.y - first.y, 9);
+    }
   });
 });

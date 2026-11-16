@@ -151,27 +151,30 @@ export function radarTileFor(latitude, longitude, zoom = RADAR.zoom) {
 }
 
 /**
- * Rejilla de `RADAR.columns` × `RADAR.rows` teselas alrededor de Ciudad Juárez.
+ * Teselas que llenan un cuadro de `RADAR.columns` × `RADAR.rows` teselas de lado
+ * con Ciudad Juárez en el centro exacto.
  *
- * El origen se toma restando media rejilla a la posición continua del punto y
- * redondeando hacia abajo, así que el punto queda dentro de la tesela central (o de
- * la columna más cercana al centro) en lugar de en una esquina. `column` y `row`
- * son la posición de cada tesela dentro del cuadro, para colocarla.
+ * Las teselas son cuadros fijos del mundo, así que el punto casi nunca cae en una
+ * frontera entre ellas. Para centrarlo, el cuadro empieza media rejilla antes del
+ * punto, con decimales, y las teselas se colocan desplazadas esa fracción. Al
+ * desplazarlas se destapa un borde, que se cubre con una columna y una fila de más;
+ * lo que sobra lo recorta el contenedor.
+ *
+ * `left` y `top` son la posición de la esquina de cada tesela dentro del cuadro,
+ * medida en teselas: pueden ser negativas o pasar del ancho del cuadro.
  */
 export function radarGrid() {
   const position = radarTilePosition(POINT.latitude, POINT.longitude);
-  const originX = Math.floor(position.x - RADAR.columns / 2);
-  const originY = Math.floor(position.y - RADAR.rows / 2);
+  const frameLeft = position.x - RADAR.columns / 2;
+  const frameTop = position.y - RADAR.rows / 2;
+  const firstX = Math.floor(frameLeft);
+  const firstY = Math.floor(frameTop);
   const tiles = [];
-  for (let column = 0; column < RADAR.columns; column += 1) {
-    for (let row = 0; row < RADAR.rows; row += 1) {
-      tiles.push({
-        zoom: RADAR.zoom,
-        x: originX + column,
-        y: originY + row,
-        column,
-        row,
-      });
+  for (let column = 0; column <= RADAR.columns; column += 1) {
+    for (let row = 0; row <= RADAR.rows; row += 1) {
+      const x = firstX + column;
+      const y = firstY + row;
+      tiles.push({ zoom: RADAR.zoom, x, y, left: x - frameLeft, top: y - frameTop });
     }
   }
   return tiles;

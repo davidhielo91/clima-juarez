@@ -9,16 +9,18 @@ import type { RadarFrame } from "@/lib/types";
 /**
  * Radar de lluvia de RainViewer, reconstruido a mano.
  *
- * No hay librería de mapas a propósito: son doce `<img>` posicionados de forma
- * absoluta sobre una base cartográfica de OpenStreetMap. Un mapa interactivo
+ * No hay librería de mapas a propósito: son `<img>` posicionados de forma absoluta
+ * sobre una base cartográfica de OpenStreetMap. Un mapa interactivo
  * —Leaflet, Mapbox— costaría cientos de kilobytes y traería zoom y arrastre que este
  * panel no necesita: lo único que se pregunta aquí es dónde está lloviendo ahora y
  * hacia dónde se mueve.
  *
  * Detalles del armado:
- *  - Se pide una rejilla de 3×2 teselas a zoom 7 alrededor de Ciudad Juárez. La
- *    rejilla la arma `radarGrid`, en `src/lib/endpoints.mjs`, con la misma fórmula de
- *    Mercator que usa el script de verificación; aquí solo se colocan las teselas.
+ *  - El cuadro mide 3×2 teselas de zoom 7 con Ciudad Juárez en el centro exacto.
+ *    Como el punto no cae en una frontera entre teselas, se piden 4×3 y se desplazan
+ *    para centrarlo; el contenedor recorta lo que sobra. La rejilla la arma
+ *    `radarGrid`, en `src/lib/endpoints.mjs`, con la misma fórmula de Mercator que usa
+ *    el script de verificación; aquí solo se colocan las teselas.
  *  - El zoom 7 no es una preferencia estética: es el máximo que sirve RainViewer. En
  *    8, 9 y 10 devuelve una imagen de error opaca con el texto "Zoom Level Not
  *    Supported", y el mapa queda tapado de carteles grises en vez de lluvia.
@@ -49,8 +51,8 @@ type GridTile = (typeof GRID)[number];
 
 function tileStyle(tile: GridTile): CSSProperties {
   return {
-    left: `${(tile.column / RADAR.columns) * 100}%`,
-    top: `${(tile.row / RADAR.rows) * 100}%`,
+    left: `${(tile.left / RADAR.columns) * 100}%`,
+    top: `${(tile.top / RADAR.rows) * 100}%`,
     width: `${100 / RADAR.columns}%`,
     height: `${100 / RADAR.rows}%`,
   };
