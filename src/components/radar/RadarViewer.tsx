@@ -2,7 +2,8 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { EmptyNote } from "@/components/ui/primitives";
-import { RADAR, baseTileUrl, radarGrid, radarTileUrl } from "@/lib/endpoints.mjs";
+import { RADAR, baseTileUrl, radarTileUrl } from "@/lib/endpoints.mjs";
+import { radarGrid } from "@/lib/radarGeometry.mjs";
 import { formatTimestamp } from "@/lib/format";
 import type { RadarFrame } from "@/lib/types";
 
@@ -19,7 +20,7 @@ import type { RadarFrame } from "@/lib/types";
  *  - El cuadro mide 3×2 teselas de zoom 7 con Ciudad Juárez en el centro exacto.
  *    Como el punto no cae en una frontera entre teselas, se piden 4×3 y se desplazan
  *    para centrarlo; el contenedor recorta lo que sobra. La rejilla la arma
- *    `radarGrid`, en `src/lib/endpoints.mjs`, con la misma fórmula de Mercator que usa
+ *    `radarGrid`, en `src/lib/radarGeometry.mjs`, con la misma fórmula de Mercator que usa
  *    el script de verificación; aquí solo se colocan las teselas.
  *  - El zoom 7 no es una preferencia estética: es el máximo que sirve RainViewer. En
  *    8, 9 y 10 devuelve una imagen de error opaca con el texto "Zoom Level Not

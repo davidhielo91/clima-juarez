@@ -37,15 +37,32 @@ import {
   buildMinutelyUrl,
   buildModelsUrl,
   buildZonesUrl,
-  radarTileFor,
   radarTileUrl,
 } from "../src/lib/endpoints.mjs";
+import { radarTileFor } from "../src/lib/radarGeometry.mjs";
+
+/**
+ * Zoom que ningún producto de radar sirve, para obtener la imagen de error de
+ * RainViewer y compararla con la del zoom configurado. Se elige bien lejos a
+ * propósito: uno cercano podría empezar a funcionar algún día y convertir la
+ * referencia en un falso positivo.
+ */
+const IMPOSSIBLE_ZOOM = 20;
 
 const failures = [];
 const notes = [];
 
+/** Comprobaciones que fallaron al menos una vez, por nombre exacto. */
+const failedChecks = new Set();
+
 function fail(check, message) {
   failures.push(`${check}: ${message}`);
+  failedChecks.add(check);
+}
+
+/** Si la comprobación no registró ningún fallo hasta ahora. */
+function passed(check) {
+  return !failedChecks.has(check);
 }
 
 function ok(check, message) {
@@ -125,7 +142,7 @@ async function checkDetailed() {
   requireKeys(check, body.daily, DAILY_VARIABLES, "daily");
   requireAligned(check, body.hourly, "hourly");
   requireAligned(check, body.daily, "daily");
-  if (!failures.some((item) => item.startsWith(check))) {
+  if (passed(check)) {
     ok(
       check,
       `${body.hourly.time.length} h × ${HOURLY_VARIABLES.length} variables, ${body.daily.time.length} días, celda ${body.latitude}/${body.longitude}`,
@@ -142,7 +159,7 @@ async function checkMinutely() {
   if (status !== 200) return fail(check, `HTTP ${status}`);
   requireKeys(check, body.minutely_15, MINUTELY_VARIABLES, "minutely_15");
   requireAligned(check, body.minutely_15, "minutely_15");
-  if (!failures.some((item) => item.startsWith(check))) {
+  if (passed(check)) {
     ok(check, `${body.minutely_15.time.length} pasos`);
   }
 }
@@ -169,7 +186,7 @@ async function checkZones() {
       `las ${elevations.length} zonas comparten elevación (${elevations[0]} m): la malla del modelo no distingue el relieve dentro de la ciudad`,
     );
   }
-  if (!failures.some((item) => item.startsWith(check))) {
+  if (passed(check)) {
     ok(
       check,
       `${body.length} puntos, elevaciones ${Math.min(...elevations)}–${Math.max(...elevations)} m`,
@@ -187,7 +204,7 @@ async function checkAirQuality() {
   if (Array.isArray(body.hourly?.ammonia) && body.hourly.ammonia.every((v) => v === null)) {
     notes.push("ammonia llega nula en toda la región: la interfaz la oculta");
   }
-  if (!failures.some((item) => item.startsWith(check))) {
+  if (passed(check)) {
     ok(
       check,
       `${body.hourly.time.length} h, celda ${body.latitude}/${body.longitude} (~11 km)`,
@@ -208,7 +225,7 @@ async function checkModels() {
     }
   }
   requireAligned(check, body.hourly, "hourly");
-  if (!failures.some((item) => item.startsWith(check))) {
+  if (passed(check)) {
     ok(check, `${MODELS.length} modelos × ${body.hourly.time.length} h`);
   }
 }
@@ -227,14 +244,24 @@ async function checkEnsemble() {
     }
   }
   requireAligned(check, body.hourly, "hourly");
-  if (!failures.some((item) => item.startsWith(check))) {
+  if (passed(check)) {
     ok(check, `${ENSEMBLE_MEMBER_COUNT} miembros × ${body.hourly.time.length} h`);
   }
 }
 
+/**
+ * Catálogo de fotogramas de RainViewer, pedido una sola vez: lo usan la comprobación
+ * del radar y la de sus teselas.
+ */
+let radarCatalog;
+function getRadarCatalog() {
+  radarCatalog ??= getJson(BASE.radar);
+  return radarCatalog;
+}
+
 async function checkRadar() {
   const check = "radar";
-  const { status, body } = await getJson(BASE.radar);
+  const { status, body } = await getRadarCatalog();
   if (status !== 200) return fail(check, `HTTP ${status}`);
   if (typeof body.host !== "string") fail(check, "sin host de tiles");
   const frames = body.radar?.past;
@@ -245,7 +272,7 @@ async function checkRadar() {
   if (!Array.isArray(infrared) || infrared.length === 0) {
     notes.push("RainViewer no publica fotogramas infrarrojos: el módulo solo usa radar");
   }
-  if (!failures.some((item) => item.startsWith(check))) {
+  if (passed(check)) {
     ok(check, `${frames.length} fotogramas, host ${body.host}`);
   }
 }
@@ -258,14 +285,12 @@ async function checkRadar() {
  * pide un zoom que no sirve, así que el mapa salía cubierto de carteles grises y la
  * verificación anterior —que solo miraba el estado— lo daba por bueno.
  *
- * La prueba pide la tesela del zoom configurado y la de un zoom imposible (el 20, que
- * ningún producto de radar sirve). Si son el mismo archivo, el zoom configurado no
- * existe. El zoom imposible se elige bien lejos a propósito: uno cercano podría
- * empezar a funcionar algún día y convertir la referencia en un falso positivo.
+ * La prueba pide la tesela del zoom configurado y la de `IMPOSSIBLE_ZOOM`. Si son el
+ * mismo archivo, el zoom configurado no existe.
  */
 async function checkRadarTiles() {
   const check = "teselas del radar";
-  const catalog = await getJson(BASE.radar);
+  const catalog = await getRadarCatalog();
   if (catalog.status !== 200) {
     return fail(check, `HTTP ${catalog.status} en el catálogo`);
   }
@@ -277,7 +302,7 @@ async function checkRadarTiles() {
 
   const frame = frames[frames.length - 1];
   const configured = radarTileFor(POINT.latitude, POINT.longitude, RADAR.zoom);
-  const impossible = radarTileFor(POINT.latitude, POINT.longitude, 20);
+  const impossible = radarTileFor(POINT.latitude, POINT.longitude, IMPOSSIBLE_ZOOM);
 
   const [wanted, broken, base] = await Promise.all([
     getBytes(radarTileUrl(host, frame.path, configured)),
@@ -298,7 +323,7 @@ async function checkRadarTiles() {
     fail(check, `HTTP ${base.status} en la cartografía base de OpenStreetMap`);
   }
 
-  if (!failures.some((item) => item.startsWith(check))) {
+  if (passed(check)) {
     ok(
       check,
       `zoom ${RADAR.zoom} con lluvia real (${wanted.buffer.length} B) distinta de la de error (${broken.buffer.length} B)`,
@@ -323,7 +348,7 @@ async function checkHistory() {
     "daily",
   );
   requireAligned(check, body.daily, "daily");
-  if (!failures.some((item) => item.startsWith(check))) {
+  if (passed(check)) {
     ok(check, `${body.daily.time.length} días`);
   }
 }
@@ -353,7 +378,7 @@ async function checkClimate() {
     days += body.daily?.time?.length ?? 0;
     for (const day of body.daily?.time ?? []) years.add(day.slice(0, 4));
   }
-  if (!failures.some((item) => item.startsWith(check))) {
+  if (passed(check)) {
     ok(check, `${days} días, ${years.size} años distintos`);
   }
 }

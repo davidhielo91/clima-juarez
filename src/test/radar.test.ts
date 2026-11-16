@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { POINT, RADAR } from "@/lib/endpoints.mjs";
 import {
-  POINT,
-  RADAR,
   radarGrid,
   radarTileEdgeMetres,
   radarTileFor,
   radarTilePosition,
-} from "@/lib/endpoints.mjs";
+} from "@/lib/radarGeometry.mjs";
 
 /** Circunferencia ecuatorial de la Tierra en el elipsoide WGS 84, en metros. */
 const EQUATOR_METRES = 40075016.686;

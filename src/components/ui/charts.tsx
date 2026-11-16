@@ -360,6 +360,13 @@ export function MoonDisk({
 /* --------------------------------------------------------------- envoltura */
 
 /** Marco reglado para las gráficas: la retícula del papel de registrador. */
+/**
+ * Etiqueta de escala sobre el trazo: va en la esquina izquierda, con fondo para que
+ * la línea no la tape. Solo cambia si va arriba (máximo) o abajo (mínimo).
+ */
+const SCALE_LABEL =
+  "numeric pointer-events-none absolute left-0 bg-night-950/85 px-1 text-[9px] text-ink-dim";
+
 export function ChartFrame({
   children,
   caption,
@@ -375,14 +382,10 @@ export function ChartFrame({
     <figure className="m-0">
       <div className="ruled relative border-y border-rule/60 py-1">
         {scaleLeft ? (
-          <span className="numeric pointer-events-none absolute left-0 top-0 bg-night-950/85 px-1 text-[9px] text-ink-dim">
-            {scaleLeft}
-          </span>
+          <span className={`${SCALE_LABEL} top-0`}>{scaleLeft}</span>
         ) : null}
         {scaleRight ? (
-          <span className="numeric pointer-events-none absolute bottom-0 left-0 bg-night-950/85 px-1 text-[9px] text-ink-dim">
-            {scaleRight}
-          </span>
+          <span className={`${SCALE_LABEL} bottom-0`}>{scaleRight}</span>
         ) : null}
         {children}
       </div>

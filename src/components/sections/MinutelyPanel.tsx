@@ -4,7 +4,7 @@ import { WeatherGlyph, type GlyphKey } from "@/components/ui/glyphs";
 import { describeWeather } from "@/lib/derive/wmo";
 import { compassPoint } from "@/lib/derive/wind";
 import { formatTime } from "@/lib/format";
-import type { ForecastBundle } from "@/lib/types";
+import type { OmBlock } from "@/lib/types";
 import {
   formatDistance,
   formatHumidity,
@@ -20,15 +20,18 @@ import {
  * Esta es la ventana donde el pronóstico por horas se queda corto: si vas a salir
  * a la calle ahora, lo que importa es si la temperatura está subiendo o bajando y
  * si va a llover en el siguiente cuarto de hora.
+ *
+ * Recibe solo el bloque `minutely15` de la petición de quince minutos (`getMinutely`),
+ * no un pronóstico entero: el pronóstico detallado también trae un `minutely15`, pero
+ * vacío, y pasarle ese dejaba el módulo diciendo que el modelo no publicó datos.
  */
 export default function MinutelyPanel({
-  forecast,
+  minutely15,
   units,
 }: {
-  forecast: ForecastBundle;
+  minutely15: OmBlock;
   units: UnitSystem;
 }) {
-  const { minutely15 } = forecast;
   const steps = minutely15.time.length;
 
   if (steps === 0) {

@@ -78,7 +78,7 @@ async function MinutelySection({ units }: SectionProps) {
   const result = await getMinutely();
   return (
     <DataState result={result} what="el detalle de quince minutos">
-      {(minutely) => <MinutelyPanel forecast={minutely} units={units} />}
+      {(minutely) => <MinutelyPanel minutely15={minutely.minutely15} units={units} />}
     </DataState>
   );
 }

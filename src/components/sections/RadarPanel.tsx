@@ -1,6 +1,7 @@
 import { Caveat, DataState, EmptyNote, Panel } from "@/components/ui/primitives";
 import RadarViewer from "@/components/radar/RadarViewer";
-import { POINT, RADAR, radarTileEdgeMetres } from "@/lib/endpoints.mjs";
+import { POINT, RADAR } from "@/lib/endpoints.mjs";
+import { radarTileEdgeMetres } from "@/lib/radarGeometry.mjs";
 import { formatTimestamp } from "@/lib/format";
 import { getRadar } from "@/lib/sources/radar";
 import { formatNumber, type UnitSystem } from "@/lib/units";
@@ -19,7 +20,8 @@ import { formatNumber, type UnitSystem } from "@/lib/units";
 
 /**
  * Extensión del cuadro, derivada de la MISMA definición que usa el visor para pedir
- * los mosaicos (`RADAR` y `radarTileEdgeMetres`, en `src/lib/endpoints.mjs`).
+ * los mosaicos (`RADAR`, en `src/lib/endpoints.mjs`, y `radarTileEdgeMetres`, en
+ * `src/lib/radarGeometry.mjs`).
  *
  * Antes cada lado calculaba la suya y no coincidían: el panel anunciaba 133 km por
  * tesela, que es el valor del zoom 8, mientras el visor pedía el 8 y RainViewer

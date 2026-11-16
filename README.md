@@ -143,6 +143,7 @@ src/
 │  └─ pwa/                  service worker, instalación y permiso de avisos
 ├─ lib/
 │  ├─ endpoints.mjs         FUENTE ÚNICA DE VERDAD de URLs y variables
+│  ├─ radarGeometry.mjs     qué teselas del radar se piden y dónde se colocan
 │  ├─ types.ts              tipos normalizados
 │  ├─ fetchJson.ts          la única puerta a la red; nunca lanza
 │  ├─ sources/              clientes de cada API, uno por endpoint
