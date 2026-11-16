@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Verificación de fuentes: golpea los nueve endpoints con las MISMAS URLs que usa
+ * Verificación de fuentes: golpea las nueve fuentes con las MISMAS URLs que usa
  * la app en producción y comprueba que responden y que traen cada variable
- * esperada.
+ * esperada. Una décima comprobación confirma que las teselas del radar traen
+ * lluvia real y no la imagen de error de RainViewer.
  *
  * Sirve para detectar a tiempo que Open-Meteo renombró o retiró una variable, en
  * lugar de descubrirlo con la página ya desplegada.

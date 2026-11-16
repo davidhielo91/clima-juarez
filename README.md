@@ -22,7 +22,7 @@ No usa claves de API ni base de datos: todo sale de fuentes abiertas y gratuitas
 | **Suelo** | Temperatura y humedad a cinco profundidades, ET0 y evaporación |
 | **Por zonas** | Seis puntos de la ciudad comparados, con la elevación que reporta el modelo |
 | **Histórico y clima** | Últimos 14 días y anomalía contra los valores normales de 1995–2024 |
-| **Radar** | Fotogramas de RainViewer sobre Juárez–El Paso, con reproducción y deslizador |
+| **Radar** | Fotogramas de RainViewer en un cuadro de unos 800 × 530 km centrado en Juárez (el valle, El Paso y el sur de Nuevo México), con reproducción y deslizador |
 
 Además: instalable como aplicación (PWA), con avisos locales del navegador y unidad
 de medida conmutable en °C/°F, km/h/mph/m/s, mm/in, hPa/inHg y m/ft.
@@ -48,13 +48,15 @@ pnpm test         # pruebas de las funciones de cálculo y de formato
 pnpm lint         # ESLint
 pnpm typecheck    # TypeScript sin emitir
 pnpm check:contrast   # contraste de los colores de texto (WCAG AA)
-pnpm verify:sources   # comprueba las 9 fuentes contra las APIs reales
+pnpm verify:sources   # comprueba las 9 fuentes y las teselas del radar contra las APIs reales
 ```
 
 ## Verificación
 
-`pnpm verify:sources` golpea los nueve endpoints con **las mismas URLs que usa la app
-en producción** y comprueba que responden y que traen cada variable esperada. Es
+`pnpm verify:sources` golpea las nueve fuentes con **las mismas URLs que usa la app
+en producción** y comprueba que responden y que traen cada variable esperada; una
+décima comprobación pide las teselas del radar para confirmar que el zoom configurado
+devuelve lluvia real y no la imagen de error de RainViewer. Es
 deliberadamente ruidoso si Open-Meteo renombra algo: es mejor enterarse aquí que con
 la página ya desplegada. Se ejecuta contra la red, así que no forma parte de
 `pnpm test`.
@@ -69,9 +71,14 @@ ok   calidad del aire — 120 h, celda 31.70/-106.50 (~11 km)
 ok   seis modelos — 6 modelos × 384 h
 ok   ensamble — 30 miembros × 240 h
 ok   radar — 13 fotogramas
+ok   teselas del radar — zoom 7 con lluvia real (334 B) distinta de la de error (1370 B)
 ok   histórico reciente — 15 días
 ok   climatología — 10958 días, 30 años distintos
 ```
+
+El tamaño de la tesela con lluvia cambia en cada corrida, porque depende de lo que
+esté cayendo en ese momento; lo que importa es que sea distinto del de la imagen de
+error.
 
 ## Qué está comprobado, y cómo
 
@@ -81,11 +88,12 @@ ok   climatología — 10958 días, 30 años distintos
 | Tipos | `pnpm typecheck` | sin errores |
 | Estilo | `pnpm lint` | sin errores |
 | Contraste de color | `pnpm check:contrast` | los 11 colores de texto superan **4.5:1** (WCAG AA) sobre las superficies donde se usan; el mínimo medido es 5.03:1 |
-| Fuentes en vivo | `pnpm verify:sources` | 9 endpoints, todas las variables presentes |
+| Fuentes en vivo | `pnpm verify:sources` | 10 comprobaciones (9 fuentes y las teselas del radar), todas las variables presentes |
 | Construcción | `pnpm build` | compila, pasa lint y tipos, y genera las páginas |
 | Render con datos reales | servidor de producción + inspección del HTML | los **14 módulos** se pintan; **cero** `undefined`, `NaN`, `null` ni mensajes de error en el texto visible |
 | Peso de la página | — | 2.3 MB de HTML que quedan en **134 KB comprimidos** |
-| Teselas del radar y del mapa base | `pnpm verify:sources` | el zoom configurado devuelve **lluvia real y no la imagen de error** de RainViewer (543 B frente a 1370 B); la rejilla 3×2 cubre 799 × 533 km |
+| Teselas del radar y del mapa base | `pnpm verify:sources` | el zoom configurado devuelve **lluvia real y no la imagen de error** de RainViewer (un archivo distinto del de error, de 1370 B), y la cartografía base responde |
+| Extensión del radar | cálculo en `RadarPanel.tsx` con `radarTileEdgeMetres` | la rejilla 3×2 del zoom 7 cubre 799 × 533 km a la latitud de Juárez; no lo comprueba ningún script |
 
 Esa comprobación de las teselas nació de un fallo real: el radar pedía un zoom que
 RainViewer no sirve, y como la respuesta llegaba con código 200, una verificación que
